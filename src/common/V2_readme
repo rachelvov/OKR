@@ -14,7 +14,8 @@ V2.sentences #original sentences (same as in okr)
 V2.argument_alignment # a dictionary of node_id to a list of edges all belonging to the same argument of the node
 V2.nodes #a dictionary of node_id to node
 		Node.id #id of node- currenty "E+original_entity_id" or "P+original_proposition_id"
-		Node.name #name of node, the same as the name of original entity/proposition
+		--Node.name #name of node, the same as the name of original entity/proposition
+		#change to terms set? (in apparatness - label). each term with its mention ids	
 		Node.label #a set of all the mention terms of this node
 		Node.entailment=entailment #entailment graph for node (see entailment_graph object in okr)
 		Node.mentions #dictionary of mention_id to mention of node
@@ -23,12 +24,15 @@ V2.nodes #a dictionary of node_id to node
         		NodeMention.indices = indices #indices of the mention
        			NodeMention.term = term #words in the mention
         		NodeMention.parent = parent #id of the node to which the node mention belong
-
+			#Add lemma of term
+			#add POS?
 			
 V2.edges #a dictionary of edge_id to edge 
 	Edge.id #edge id - currently in the format of "Node_id_start_node+_+Node_id_end_node"
-	Edge.start_node#start node
-	Edge.end_node#end node
+	--Edge.start_node#start node
+	--Edge.end_node#end node
+	Pair of edges
+	#change to set of terms, with edge mentions id of each term
 	Edge.label# set of all terms of all mentions
 	Edge.mentions #dictionary of mention id to mention
 		Edge.EdgeMention.id#edge mention id - currently in the form of "original_proposition_id+_+original_mention_id" 
