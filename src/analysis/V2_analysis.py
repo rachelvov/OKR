@@ -4,7 +4,7 @@ import collections
 sys.path.append('../common')
 import numpy as np
 from okr import *
-from V2Conversion import *
+from V2_conversion2 import *
 
 def strip_predicate(pred_string):
 	pred_string=unicode(pred_string, "utf-8")

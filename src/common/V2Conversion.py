@@ -55,10 +55,9 @@ class NodeMention:
         	return str(self.sentence_id) + str(self.indices)
 
 class Edge:
-	def __init__(self, id, start_node,end_node):
+	def __init__(self, id, nodes_pair):
 		self.id=id #edge id - currently in the format of "Node_id_start_node+_+Node_id_end_node"
-		self.start_node=start_node#start node
-		self.end_node=end_node#end node
+		self.nodes_pair=sorted(nodes_pair) #pair of nodes connected by edge
 		self.mentions={} #dictionary of mention id to mention
 		self.label=[]# set of all terms of all mentions
 
@@ -66,27 +65,24 @@ class Edge:
 		
 
 class EdgeMention:
-	def __init__(self, id, sentence_id, indices, terms,template, all_nodes,main_pred, embedded, is_explicit):
+	def __init__(self, id, nodes_mentions_pair,sentence_id, indices, terms,template):
 		self.id = id #edge mention id - currently in the form of "original_proposition_id+_+original_mention_id" 
+		self.nodes_mentions_pair=nodes_mentions_pair #the two nodes mentions connected by the edge mention
         	self.sentence_id = sentence_id #sentence of mention
         	self.indices = indices #indices of mention
        		self.terms = terms #terms of edge mention
        		self.template = template #template of edge mention
-        	self.all_nodes=all_nodes #all nodes wich appear in the template
-		self.embedded=embedded #edge mentions of embedded predicates in template. dictionary of embedded predicate to edge mentions. 
-		self.embedded_edges={} #edges belonging to edge mentions of embedded predicates in template. 
-						#dictionary of embedded predicate to edges. 
-		self.is_explicit=is_explicit #is edge created from explicit proposition (like in okr)
-		self.main_pred=main_pred #the main predicate of the edge
-		self.parents=[] #all edges in which the edge mention appear
-		self.start_node_indices=None
-		self.end_node_indices=None
+        	self.parent=[] #the edge in which the mention appear
 	def __str__(self):
 
         	return str(self.sentence_id) + str(self.indices)
 
 
-
+def to_letter(mention_type):
+	if mention_type==1: #predicate
+		return "P"
+	else:
+		return "E"
 
 def change_template_predicate(template, terms, p_id):
 
@@ -98,11 +94,11 @@ def change_template_predicate(template, terms, p_id):
 	#print(template+"\n")
 	#print(terms+"\n")
 	if template.find(terms)==-1:
-		print(p_id+": non-consecutive predicate:|"+terms+"| in the template: |"+template+"|")
+		#print(p_id+": non-consecutive predicate:|"+terms+"| in the template: |"+template+"|")
 		return template
 		#TODO: handle
-	if len([n for n in re.finditer(terms, template)])>1:
-		print("terms found more than once"+terms+template)
+	#if len([n for n in re.finditer(terms, template)])>1:
+		#print("terms found more than once"+terms+template)
 	new_template=template.replace(terms," ["+str(p_id)+"] ")
 	#print (new_template+"\n")
 	return new_template
@@ -152,62 +148,58 @@ def convert(okr):
 
 	#predicates to nodes:
 	Proposition_Nodes={}
-	Edge_Mentions=[]
+	Edges={}
 	for p_id,p in okr.propositions.iteritems():
+
+		#node id:
 		new_p_id="P"+str(p_id)
+		#get indices, words and pos for every predicate mention:
 		prop_mentions={m_num:[[num,pos.orth_,pos.tag_] for num,pos in enumerate(nlp(unicode(" ".join(okr.sentences[m.sentence_id])))) if num in m.indices] for m_num,m in p.mentions.iteritems() if m.is_explicit} 
+		#remove stop words from predicates:
 		new_terms={m_num:" ".join([str(word[1]) for word in m if word[2] not in S_WORDS])for m_num,m in prop_mentions.iteritems()}
 		new_indices={m_num:[word[0] for word in m if word[2] not in S_WORDS ]for m_num,m in prop_mentions.iteritems()}
+		#set of predicate terms (for the label):
 		new_terms_all=set([m for m in new_terms.values()])
+		#convert predicate mentions to node mentions
 		new_mentions={m_num: NodeMention(m_num,m.sentence_id,new_indices[m_num],new_terms[m_num], new_p_id) for m_num,m   in p.mentions.iteritems() if m.is_explicit}
 		if (not (len(new_terms_all)==1 and [n for n in new_terms_all][0]=="")) and len(new_terms_all)>0:#not empty predicate
 			Proposition_Nodes[new_p_id]=Node(new_p_id,p.name, new_mentions, new_terms_all,p.entailment_graph)
 	
-	#create new templates:
-		new_indices_edge={m_num:[word[0] for word in m if word[2] in S_WORDS ]for m_num,m in prop_mentions.iteritems()}
-		new_terms_edge={m_num:" ".join([str(word[1]) for word in m if word[2] in S_WORDS])for m_num,m in prop_mentions.iteritems()}
-		
-		#replace predicates with nodes:
-		new_templates_w_args= {m_num:   change_template_predicate(m.template, new_terms.get(m_num,None), new_p_id) for m_num, m in 	p.mentions.iteritems()}
-		#replace arguments:
-		new_templates= {m_num:change_template_arguments(template, p.mentions[m_num].argument_mentions) for m_num, template in 	new_templates_w_args.iteritems()}
-	
-		#get mentions of embedded predicates:
-		embedded= {m_num:get_embedded_mentions(m.argument_mentions) for  m_num,m   in p.mentions.iteritems()}
-	
-		#assign main predicates only to propositions with a non-stop word predicate:
-		main_predicates={m_num:new_p_id if not new_terms.get(m_num,"")=="" else None for m_num,m in p.mentions.iteritems()}
-	#extract edge mentions:
-		Edge_Mentions=Edge_Mentions+[EdgeMention(new_p_id+"_"+str(m_num) , m.sentence_id, new_indices_edge.get(m_num,-1), 	new_terms_edge.get(m_num,""),new_templates[m_num], extract_nodes_from_templates(new_templates[m_num]), main_predicates[m_num],embedded[m_num], 	m.is_explicit) for m_num,m in p.mentions.iteritems()]
+	#propositions to edges:
+		#get indices and terms for explicit mentions:
+		new_edge_indices={m_num:[word[0] for word in m if word[2] in S_WORDS ]for m_num,m in prop_mentions.iteritems()}
+		new_edge_terms={m_num:" ".join([str(word[1]) for word in m if word[2] in S_WORDS]) for m_num,m in prop_mentions.iteritems()}
+		content_word_mentions=[m_num for m_num,term in new_terms.iteritems() if not term==""]
+		for mention_id,mention in p.mentions.iteritems():
+			#get all arguments mentions:
+			arguments_mentions={arg_id:(to_letter(arg.mention_type)+str(arg.parent_id), arg.parent_mention_id) for arg_id,arg in mention.argument_mentions.iteritems()}
+			if mention_id in content_word_mentions:# mention with a content word predicate
+				predicate_mention=[new_p_id, mention_id]
+				#get all predicate-argument mention pairs:
+				mention_pairs=[[predicate_mention, arg_men] for arg_men in arguments_mentions.values() ]
+			else: #implicit or non-content-word predicate:
+				mention_pairs=list(itertools.combinations(arguments_mentions.values(), 2))
+			#create edge mention for every ,mention pair:
+			edge_mention_id=str(p_id)+"_"+str(mention_id)
+			sentence_id=mention.sentence_id	
+			new_edge_template_pred=change_template_predicate(mention.template,new_terms.get(mention_id, None),new_p_id)
+			new_edge_template=change_template_arguments(new_edge_template_pred,mention.argument_mentions) 
+			indices=new_edge_indices.get(mention_id,None) #if no stop-words in edge template, return None
+			terms=new_edge_terms.get(mention_id, None) #if no stop-words in edge template, return None
+			for pair in mention_pairs:
+				#create edge mention:	
+				edge_mention=EdgeMention(edge_mention_id,sorted(pair),sentence_id, indices, terms,new_edge_template)
+				#insert into correct edge:
+				nodes_pair=sorted([p[0] for p in pair]) #the pair of nodes (without mentions)
+				edge_id="_".join(nodes_pair)
+				if edge_id not in Edges: #create edge
+					Edges[edge_id]=Edge(edge_id,nodes_pair)
+				Edges[edge_id].mentions[edge_mention_id]=edge_mention
+				edge_mention.parent=edge_id						
 	Nodes={}
 	Nodes.update(Entity_Nodes)
-	Nodes.update(Proposition_Nodes)
-	
-	#create edges for all pairs of nodes that are connected by edge:
-	Edges={}
-	for edge_mention in Edge_Mentions:
-		if  edge_mention.main_pred==None:
-		   pairs=list(itertools.combinations(edge_mention.all_nodes, 2))
-		else:
-		   pairs=[(edge_mention.main_pred,node)  for node in edge_mention.all_nodes if not edge_mention.main_pred==node]
-		for pair in pairs:
-				edge_id="_".join(pair)
-				if edge_id not in Edges:
-					Edges[edge_id]=Edge(edge_id,pair[0],pair[1])
-				Edges[edge_id].mentions[edge_mention.id]=edge_mention
-				edge_mention.parents.append(edge_id)
-	#set edge labels:
-	for edge in Edges.values():
-		edge.label=set([mention.template for mention in edge.mentions.values()])
-	
-	#turn embedded predicate mentions to edges:
-	Edge_Mentions_dict={m.id:m for m in Edge_Mentions}
-	for edge in Edges.values():
-		for mention in edge.mentions.values():
-			new_embedded={}
-			for e in mention.embedded:
-				new_embedded[e]=Edge_Mentions_dict[mention.embedded[e]].parents
-			mention.embedded_edges=new_embedded
+	Nodes.update(Proposition_Nodes)		
+				
 	
 	#Add argument alinment links:
 	Args={}
@@ -230,13 +222,11 @@ def convert(okr):
 	v2=V2(okr.name,okr.ignored_indices,Nodes,Edges, Argument_Alignment, okr.sentences)
 	return v2		
 
-def main():		
+def main():	
+
 	input_file=sys.argv[1]
 	okr = load_graph_from_file(input_file)
 	v2=convert(okr)	
 
 if __name__ == '__main__':
-    main()
-
-		
-		
+   main()
