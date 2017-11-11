@@ -48,28 +48,8 @@ def compute_node_coref_agreement(graph1, graph2):
     ceaf_score = np.mean([ceaf1, ceaf2])
     mela_score = np.mean([mela1, mela2])
 
-    # Compute the consensual graphs - find the maximum alignment between entity clusters and keep only
-    # the intersection between the clusters in each graph's aligned clusters
-    cost = -np.vstack([np.array([len(s1.intersection(s2)) for s1 in graph1_ent_mentions])
-                       for s2 in graph2_ent_mentions])
-    m = Munkres()
-    cost = pad_to_square(cost)
-    indices = m.compute(cost)
-    optimal_alignment = { row : col for row, col in indices }
-    rev_optimal_alignment = { col : row for row, col in indices }
 
-    s1_to_s2 = { graph1.nodes.keys()[i] : s1.intersection(graph2_ent_mentions[optimal_alignment[i]])
-                 for i, s1 in enumerate(graph1_ent_mentions)
-                 if optimal_alignment[i] < len(graph2_ent_mentions) }
-
-    s2_to_s1 = { graph2.nodes.keys()[i] : s2.intersection(graph1_ent_mentions[rev_optimal_alignment[i]])
-                 for i, s2 in enumerate(graph2_ent_mentions)
-                 if rev_optimal_alignment[i] < len(graph1_ent_mentions) }
-
-    consensual_graph1 = filter_clusters(graph1, s1_to_s2)
-    consensual_graph2 = filter_clusters(graph2, s2_to_s1)
-
-    return muc_score, bcubed_score, ceaf_score, mela_score, consensual_graph1, consensual_graph2
+    return muc_score, bcubed_score, ceaf_score, mela_score
 
 
 def muc(gold_mentions, response_mentions):

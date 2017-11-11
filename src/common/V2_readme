@@ -29,11 +29,9 @@ V2.nodes #a dictionary of node_id to node
 			
 V2.edges #a dictionary of edge_id to edge 
 	Edge.id #edge id - currently in the format of "<Node_id of first node>+_+<Node_id of second node>"
-	--Edge.start_node#start node
-	--Edge.end_node#end node
-	Pair of edges
-	#change to set of terms, with edge mentions id of each term
-	Edge.label# set of all terms of all mentions
+	Edge.nodes_pair #the pair of edges the node connects
+	@@change to set of terms, with edge mentions id of each term
+	@@Edge.label# set of all templates of all mentions
 	Edge.mentions #dictionary of mention id to mention
 		Edge.EdgeMention.id#edge mention id - currently in the form of "original_proposition_id+_+original_mention_id" 
         	Edge.EdgeMention.sentence_id #sentence of mention
@@ -41,12 +39,6 @@ V2.edges #a dictionary of edge_id to edge
 		Edge.EdgeMention.nodes_mentions_pair #the pair of nodes mentions which this mention connect
        		Edge.EdgeMention.terms #terms of edge mention (term or terms of the non-content words in template)
        		Edge.EdgeMention.template #template of edge mention (full "r" template)
-        	Edge.EdgeMention.all_nodes #all nodes wich appear in the template
-		Edge.EdgeMention.embedded #edge mentions of embedded predicates in template. dictionary of embedded predicate to edge mentions. 
-		Edge.EdgeMention.embedded_edges #edges belonging to edge mentions of embedded predicates in template. 
-						#dictionary of embedded predicate to edges. 
-		Edge.EdgeMention.is_explicit #is edge created from explicit proposition (like in okr)
-		Edge.EdgeMention.main_pred #the main predicate of the edge
 		Edge.EdgeMention.parent #the edge the mention belongs to
 
 

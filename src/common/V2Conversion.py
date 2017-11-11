@@ -16,7 +16,7 @@ replace_tokenizer(nlp)
 NOUNS=[u'NNP',u'NN', u'NNS', u'NNPS',u'CD',u'PRP',u'PRP$']
 ADJECTIVES=[u'JJ',u'JJR',u'JJS']
 VERBS=[u'VB', u'VBN', u'VBD', u'VBG', u'VBP']
-S_WORDS=[u'IN',u'WDT',u'TO',u'DT']
+S_WORDS=[u'IN',u'WDT',u'TO',u'DT',u'POS']
 
 from okr import *
 
@@ -51,7 +51,6 @@ class NodeMention:
        		self.term = term #words in the mention
         	self.parent = parent #id of the node to which the node mention belong
 	def __str__(self):
-
         	return str(self.sentence_id) + str(self.indices)
 
 class Edge:
@@ -67,15 +66,16 @@ class Edge:
 class EdgeMention:
 	def __init__(self, id, nodes_mentions_pair,sentence_id, indices, terms,template):
 		self.id = id #edge mention id - currently in the form of "original_proposition_id+_+original_mention_id" 
-		self.nodes_mentions_pair=nodes_mentions_pair #the two nodes mentions connected by the edge mention
+		self.nodes_mentions_pair=sorted(nodes_mentions_pair) #the two nodes mentions connected by the edge mention
         	self.sentence_id = sentence_id #sentence of mention
         	self.indices = indices #indices of mention
        		self.terms = terms #terms of edge mention
        		self.template = template #template of edge mention
         	self.parent=[] #the edge in which the mention appear
-	def __str__(self):
-
-        	return str(self.sentence_id) + str(self.indices)
+	def toString(self,v2):
+		node_str_1=str(v2.nodes[self.nodes_mentions_pair[0][0]].mentions[self.nodes_mentions_pair[0][1]])
+		node_str_2=str(v2.nodes[self.nodes_mentions_pair[1][0]].mentions[self.nodes_mentions_pair[1][1]])
+        	return  min(node_str_1,node_str_2)+"_"+max(node_str_1,node_str_2)
 
 
 def to_letter(mention_type):
@@ -184,8 +184,8 @@ def convert(okr):
 			sentence_id=mention.sentence_id	
 			new_edge_template_pred=change_template_predicate(mention.template,new_terms.get(mention_id, None),new_p_id)
 			new_edge_template=change_template_arguments(new_edge_template_pred,mention.argument_mentions) 
-			indices=new_edge_indices.get(mention_id,None) #if no stop-words in edge template, return None
-			terms=new_edge_terms.get(mention_id, None) #if no stop-words in edge template, return None
+			indices=new_edge_indices.get(mention_id,-1) #if no stop-words in edge template, return None
+			terms=new_edge_terms.get(mention_id, "") #if no stop-words in edge template, return None
 			for pair in mention_pairs:
 				#create edge mention:	
 				edge_mention=EdgeMention(edge_mention_id,sorted(pair),sentence_id, indices, terms,new_edge_template)
@@ -222,11 +222,11 @@ def convert(okr):
 	v2=V2(okr.name,okr.ignored_indices,Nodes,Edges, Argument_Alignment, okr.sentences)
 	return v2		
 
-def main():	
+#def main():	
+#
+#	input_file=sys.argv[1]
+#	okr = load_graph_from_file(input_file)
+#	v2=convert(okr)	
 
-	input_file=sys.argv[1]
-	okr = load_graph_from_file(input_file)
-	v2=convert(okr)	
-
-if __name__ == '__main__':
-   main()
+#if __name__ == '__main__':
+#  main()
