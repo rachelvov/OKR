@@ -13,14 +13,12 @@ from mention_common import *
 def debug(consensual_mentions, graph1_ent_mentions, graph2_ent_mentions):
 	graph1_sents=set([m.split("[")[0] for m in graph1_ent_mentions])
 	graph2_sents=set([m.split("[")[0] for m in graph2_ent_mentions])
-	print (graph1_sents-graph2_sents)
+
 	delta1=graph1_ent_mentions-consensual_mentions
 	delta1=[m for m in delta1 if m.split("[")[0] in graph2_sents]
-	print("graph1_ent_mentions-consensual_mentions:")
-	#print delta1
+	
 	delta2=graph2_ent_mentions-consensual_mentions
-	print("graph2_ent_mentions-consensual_mentions:")
-	#print delta2
+	
 
 
 def compute_node_mention_agreement(graph1, graph2):
@@ -113,5 +111,5 @@ def extract_consensual_mentions(graph1, graph2):
         graph2_ent_mentions = set([a for a in graph2_ent_mentions if len(overlap_set(a, graph1.ignored_indices)) == 0])
 
     consensual_mentions = graph1_ent_mentions.intersection(graph2_ent_mentions)
-    #print(consensual_mentions)
+
     return consensual_mentions, graph1_ent_mentions, graph2_ent_mentions

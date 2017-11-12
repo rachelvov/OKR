@@ -31,9 +31,7 @@ def compute_edge_coref_agreement(graph1, graph2):
     graph1_edge_mentions = [set([mention.toString(graph1) for mention in edge.mentions.values()]) for edge in graph1.edges.values()]
     graph2_edge_mentions = [set([mention.toString(graph2) for mention in edge.mentions.values()]) for edge in graph2.edges.values()]
 
-    print(graph1_edge_mentions)
-    print()
-    print(graph2_edge_mentions)
+ 
 
     # Compute twice, each time considering a different annotator as the gold, and return the average among
     # each measure
